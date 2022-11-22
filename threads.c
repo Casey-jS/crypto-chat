@@ -4,12 +4,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
+
+// NOTE ** use -lpthread arg when compiling
 
 // arg/param must be void pointer
 void* handleClient(void* arg){
     int clientSocket = *(int*)arg; // cast as int pointer and dereference to get int
     char line[5000];
-    recvf(clientSocket, line, 5000, 0);
+    recv(clientSocket, line, 5000, 0);
     close(clientSocket);
 }
 
@@ -28,6 +31,6 @@ int main(int argc, char** argv){
         int clientsocket = accept(sockfd, (struct sockaddr*)&clientaddr, &len);
         pthread_t child;
         pthread_create(&child, NULL, handleClient, &clientsocket); // fourth param: what is passed into third param
-        pthread_detach(child);
+        pthread_detach(child); // let the thread do its thing, we don't care about it anymore
     }
 }
