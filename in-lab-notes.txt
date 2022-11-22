@@ -1,0 +1,27 @@
+Server Has
+1. Private Key
+2. Public Key associated with private key that is known to everyone
+3. Server does not need to share public key (can just be read from file)
+
+When client connects to server:
+- Client should generate new asymmetric key
+- ex. Client 1 generates its own key (K1)
+  - Encrypts K1 using public key and sends to the serveer
+  - Now server decrypts the key and knows K1 
+
+
+  Message From C1 - C2
+  - c1 Encrypts 
+  - server decrypts
+  - server encrypts with K2
+  - sends to C2
+
+
+When we send an encrypted message:
+- encrypt(indicator_for_text, key, iv);
+ - iv: Makes sure when we encrypt same plain text multiple times, it doesn't result in multiple cypher texts
+  - Every encrypted message is unique even if the text is the same
+  - iv is essentially xor'd with plain text
+  - iv does not need to be secret
+- send(m, k, iv), iv
+- One more parameter to worry about: 
