@@ -9,8 +9,7 @@
 #include <openssl/rsa.h>
 #include <string.h>
 
-void handleErrors(void)
-{
+void handleErrors(void){
   ERR_print_errors_fp(stderr);
   abort();
 }

@@ -9,13 +9,11 @@ When client connects to server:
   - Encrypts K1 using public key and sends to the serveer
   - Now server decrypts the key and knows K1 
 
-
   Message From C1 - C2
   - c1 Encrypts 
   - server decrypts
   - server encrypts with K2
   - sends to C2
-
 
 When we send an encrypted message:
 - encrypt(indicator_for_text, key, iv);
