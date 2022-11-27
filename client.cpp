@@ -100,6 +100,16 @@ int main(int argc, char **argv) {
         }
 
         send(sockfd, line, 5000, 0);
+	if(validCommand == 4){
+	  char response[5000];
+	  recv(sockfd, response, 5000, 0);
+	  cout << response << endl;
+	  if((strcmp(response, "GRANTED")) == 0){
+	    cout << "Access Granted" << endl;
+	  }else{
+	    cout << "Access Denied" << endl;
+	  }
+	}
     }
     close(sockfd);
 

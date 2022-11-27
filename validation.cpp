@@ -36,9 +36,12 @@ int handle_command(char *line, char command, char user[10]) {
         return 0;
     }
     else if (command == '4') {
-        if (become_admin() == true){
-            std::cout << "Admin access granted" << std::endl;
-        }
+      std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
+      char password[4900];
+      std::cin >> password;
+      memcpy(&line[11], password, 4900);
+
+      return 4;
     }
     else if (command == '5') {
         if (!is_admin){

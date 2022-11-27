@@ -9,6 +9,8 @@
 
 using namespace std;
 
+#define PASSWORD "password1"
+
 int main(int argc, char **argv) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     
@@ -112,7 +114,17 @@ int main(int argc, char **argv) {
                     memcpy(&msg[33], clientList.c_str(), clientList.size());
                     send(i, msg, 5000, 0);
 
-                }
+                }else if(command == 4){
+		  memcpy(&msg, line+11, 4900);
+		  char response[5000];
+		  if((strcmp(msg, PASSWORD)) == 0){
+		    memcpy(&response, "GRANTED", 8);
+		    cout << user << " is now an admin" << endl;
+		  }else{
+		    memcpy(&response, "DENIED", 7);
+		  }
+		  send(i, response, 5000, 0);
+		}
                 // Close client's connection
                 else if(command == 5 || command == 9) {
                     string rmUser = string(user);
