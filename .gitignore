@@ -1,0 +1,7 @@
+# Ignore Mac system file
+.DS_store
+
+# Ignore executables
+Client
+Server
+a.out
