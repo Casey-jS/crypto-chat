@@ -30,7 +30,7 @@ bool valid_password(string password){
 
     if (password.length() < 6 || password.length() > 16){ return false; }
 
-    regex valid_password("^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,16}");
+    regex valid_password("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,16}");
 
     if(regex_match(password, valid_password)){ return true; }
 
@@ -89,7 +89,6 @@ string handle_command(string command){
         }
     }
 
-
     return "Invalid command";
 }
 
@@ -110,12 +109,14 @@ int main(int arc, char** argv){
         string input;
         cin >> input;
 
+        // if the user input is a command
         if (input[0] == '!'){
             cout << handle_command(input) << endl; // handle_command should return a string indicating what happened as result of command
             
         }
+        // else, it's just a regular message
         else{
-            send_message(input);
+            send_message(input, "127.0.0.1");
         }
     }
 
