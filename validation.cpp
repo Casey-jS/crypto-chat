@@ -7,14 +7,13 @@
 bool is_admin = false;
 int handle_command(char *line, char command, char user[10]) {
 
-    if(command == 'q') {
-        line[0] = '9';
-        return 9;
-    }
-
     memcpy(&line[0], &command, 1);
     memcpy(&line[1], user, 10);
-    //char msg[4900];
+    if(command == 'q') {
+        line[0] = '9';
+        std::cout << "Disconnecting from the server" << std::endl;
+        return 9;
+    }
     std::string msg;
     char otherUser[10];
     // Broadcast message
@@ -34,7 +33,7 @@ int handle_command(char *line, char command, char user[10]) {
     }
     // List of clients
     else if (command == '3') {
-        std::cout << "Getting list of clients" << std::endl;
+        return 0;
     }
     else if (command == '4') {
         if (become_admin() == true){
@@ -44,11 +43,15 @@ int handle_command(char *line, char command, char user[10]) {
     else if (command == '5') {
         if (!is_admin){
             std::cout << "You do not have admin rights." << std::endl;
+            return 99;
         }
         // if the user IS an admin
         else {
             std::cout << "User to kick: ";
             std::cin >> otherUser;
+            if(strcmp(user, otherUser) == 0) {
+                return 9;
+            }
             memcpy(&line[11], otherUser, 10);
         }
     }

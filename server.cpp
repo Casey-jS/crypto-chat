@@ -44,12 +44,18 @@ int main(int argc, char **argv) {
             int m = recv(clientsocket, line, 10, 0);
             string clientName = string(line);
             clients.insert(make_pair(clientName, clientsocket));
-            cout << "New client connected on socket " << sockfd << endl;
-            cout << "Number of clients connected to the server: " << clients.size() << endl;
-            cout << "List of clients: ";
-            for(const auto &cName : clients)
-                cout << cName.first << ", ";
-            cout << endl;
+            cout << clientName << " connected to the server" << endl;
+            cout << clients.size() << " client(s) connected to the server: [";
+            bool firstClient = true;
+            for(const auto &cName : clients) {
+                if(firstClient) {
+                    firstClient = false;
+                    cout << cName.first;
+                }
+                else 
+                    cout << ", " << cName.first;
+            }
+            cout << "]" << endl;
         }
 
         for(int i = 0; i < FD_SETSIZE; ++i) {
@@ -62,13 +68,13 @@ int main(int argc, char **argv) {
                 int command = 0;
                 // convert char to int
                 command = line[0] - '0';
-                if(n > 1) {
-                    memcpy(&user, line+1, 10);
-                }
+                memcpy(&user, line+1, 10);
                 // Broadcast message
                 if(command == 1) {
-                    memcpy(&msg, line+11, 4900);
-                    cout << string(user) << " -> All > " << msg << endl;
+                    // Put the sender in the msg
+                    memcpy(&msg, line+1, 10);
+                    memcpy(&msg[10], line+11, 4900);
+                    cout << "<" << string(user) << " -> All> " << string(msg+10) << endl;
 
                     // Send msg to all client connected to the server 
                     for(const auto &client : clients) {
@@ -80,13 +86,15 @@ int main(int argc, char **argv) {
                 else if(command == 2) {
                     char dmUser[10];
                     memcpy(&dmUser, line+11, 10);
-                    memcpy(&msg, line+21, 4900);
+                    // Put the sender in the msg
+                    memcpy(&msg, line+1, 10);
+                    memcpy(&msg[10], line+21, 4900);
                     if(clients.count(string(dmUser)) == 0) {
                         string dmError = "User does not exist";
                         send(clients[string(user)], dmError.c_str(), 5000, 0);
                     }
                     else {
-                        cout << string(user) << " -> " << string(dmUser) << " > " << msg << endl;
+                        cout << "<" << string(user) << " -> " << string(dmUser) << "> " << string(msg+10) << endl;
                         send(clients[string(dmUser)], msg, 5000, 0);
                     }
 
@@ -94,11 +102,15 @@ int main(int argc, char **argv) {
                 // get list of clients
                 else if(command == 3) {
                     cout << "Sending list of clients to " << string(user) << endl;
+                    // Put the sender in the msg
+                    memcpy(&msg, "SERVER", 6);
                     string clientList = "";
                     for(const auto &client : clients) {
                         clientList += client.first + " ";
                     }
-                    send(i, clientList.c_str(), 5000, 0);
+                    memcpy(&msg[10], "Clients on the server: ", 23);
+                    memcpy(&msg[33], clientList.c_str(), clientList.size());
+                    send(i, msg, 5000, 0);
 
                 }
                 // Close client's connection
@@ -110,13 +122,29 @@ int main(int argc, char **argv) {
                         memcpy(&kickUser, line+11, 10);
                         rmUser = string(kickUser);
                         cout << "Kicked " << rmUser << " from server" << endl;
+                        memcpy(&user, "SERVER", 6);
+                        char kickMsg[] = "You have been kicked from the server.";
+                        memcpy(&msg, user, 10);
+                        memcpy(&msg[10], kickMsg, 50);
+                        send(clients[rmUser], msg, 100, 0);
                     }
                     // Close client's socket
                     FD_CLR(clients[rmUser],&sockets);
                     close(clients[rmUser]);
-                    cout << "Closed socket " << clients[rmUser] << endl;
+                    cout << "Closed socket " << clients[rmUser] << ", for client: " << rmUser << endl;
                     // Remove user from list of clients connected
                     clients.erase(rmUser);
+                    cout << clients.size() << " client(s) still on the server: [";
+                    bool firstClient = true;
+                    for(const auto &cName : clients) {
+                        if(firstClient) {
+                            firstClient = false;
+                            cout << cName.first;
+                        }
+                        else 
+                            cout << ", " << cName.first;
+                    }
+                    cout << "]" << endl;
                 }
                 // No new message
                 else

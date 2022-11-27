@@ -20,10 +20,17 @@ void* receiveFromServer(void* arg) {
     char content[5000];
 
     len_recv = recv(sock, content, 5000, 0); 
-    cout << endl << "received from server: " << content << endl;
+    // First part of the message is who it is from
+    char fromUser[10];
+    memcpy(&fromUser, content, 10);
+    char msg[4990];
+    memcpy(&msg, content+10, 4990);
+
+    cout << endl << "<" << string(fromUser) <<"> " << msg << endl;
 }
 
 void printCommands() {
+    cout << endl << "========================================" << endl;
     cout << "Commands to use: " << endl;
     cout << "1) Broadcast message" << endl;
     cout << "2) Private message" << endl;
@@ -31,6 +38,7 @@ void printCommands() {
     cout << "4) Become an admin" << endl;
     cout << "5) Kick a user from the server (for admins only)" << endl;
     cout << "q) Disconnect" << endl;
+    cout << "========================================" << endl << endl;
 }
 
 int connectToServer() {
@@ -73,6 +81,7 @@ int main(int argc, char **argv) {
 
     while(1) {
 
+        // Create a thread for receiving messages
         pthread_t child_recv;
         pthread_create(&child_recv, NULL, receiveFromServer, &sockfd);
         pthread_detach(child_recv);
@@ -83,7 +92,7 @@ int main(int argc, char **argv) {
         cin >> command;
         int validCommand = handle_command(line, command, user);
         if(validCommand == 9) {
-            send(sockfd, line, 1, 0);
+            send(sockfd, line, 11, 0);
             break;
         }
         if(validCommand == 99) {
