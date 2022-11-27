@@ -4,7 +4,7 @@
 #include <cwctype> // for validating the username
 #include <regex>
 
-bool is_admin = false;
+bool is_admin = true;
 int handle_command(char *line, char command, char user[10]) {
 
     memcpy(&line[0], &command, 1);

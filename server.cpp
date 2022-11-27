@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <map>
+#include <list>
 
 using namespace std;
 
@@ -32,6 +33,8 @@ int main(int argc, char **argv) {
     
     // client's username and socket
     map<string, int> clients;
+
+    list<string> admins;
 
 
     while(1) {
@@ -119,6 +122,7 @@ int main(int argc, char **argv) {
 		  char response[5000];
 		  if((strcmp(msg, PASSWORD)) == 0){
 		    memcpy(&response, "GRANTED", 8);
+		    admins.push_back(string(user));
 		    cout << user << " is now an admin" << endl;
 		  }else{
 		    memcpy(&response, "DENIED", 7);
@@ -130,15 +134,23 @@ int main(int argc, char **argv) {
                     string rmUser = string(user);
                     // Kick user
                     if(command == 5) {
-                        char kickUser[10];
-                        memcpy(&kickUser, line+11, 10);
-                        rmUser = string(kickUser);
-                        cout << "Kicked " << rmUser << " from server" << endl;
-                        memcpy(&user, "SERVER", 6);
-                        char kickMsg[] = "You have been kicked from the server.";
-                        memcpy(&msg, user, 10);
-                        memcpy(&msg[10], kickMsg, 50);
-                        send(clients[rmUser], msg, 100, 0);
+		      // Checks if user is an admin
+		      bool isAdmin = false;
+		      for(const auto &Name : admins) {
+                        if(strcmp(Name.c_str(), user) == 0){
+			  isAdmin = true;
+			   char kickUser[10];
+			   memcpy(&kickUser, line+11, 10);
+			   rmUser = string(kickUser);
+			   cout << "Kicked " << rmUser << " from server" << endl;
+			   memcpy(&user, "SERVER", 6);
+			   char kickMsg[] = "You have been kicked from the server.";
+			   memcpy(&msg, user, 10);
+			   memcpy(&msg[10], kickMsg, 50);
+			   send(clients[rmUser], msg, 100, 0);
+			}
+		      }
+		      if(!isAdmin) continue;
                     }
                     // Close client's socket
                     FD_CLR(clients[rmUser],&sockets);
