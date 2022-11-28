@@ -15,19 +15,11 @@
 
 using namespace std;
 
-struct receive_data {
-  int sock;
-  pid_t pid;
-};
-
 // Use thread to receive from server
 void* receiveFromServer(void* arg) {
 
-    struct receive_data *my_data;
-    my_data = (struct receive_data *) arg;
-    
-    int sock = my_data->sock;
-    pid_t parent = my_data->pid;
+    int sock = *(int*) arg;
+  
     ssize_t len_recv = 0;
     char content[5000];
 
@@ -41,7 +33,7 @@ void* receiveFromServer(void* arg) {
     cout << endl << "<" << string(fromUser) <<"> " << msg << endl;
 
     if(strcmp(msg,"You have been kicked from the server.") == 0){
-      kill(parent, SIGKILL);
+      kill(0, SIGKILL);
     }
 }
 
