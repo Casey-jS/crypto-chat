@@ -18,7 +18,7 @@ using namespace std;
 char user[10];
 // Use thread to receive from server
 void* receiveFromServer(void* arg) {
-
+  while(1){
     int sock = *(int*) arg;
   
     ssize_t len_recv = 0;
@@ -39,8 +39,9 @@ void* receiveFromServer(void* arg) {
     cout << endl << "<" << string(fromUser) <<"> " << msg << endl;
 
     if(strcmp(msg,"You have been kicked from the server.") == 0){
-      kill(0, SIGKILL);
+      kill(0, SIGINT);
     }
+  }
 }
 
 void printCommands() {
@@ -93,12 +94,12 @@ int main(int argc, char **argv) {
     
     printCommands();
 
+    // Create a thread for receiving messages
+    pthread_t child_recv;
+    pthread_create(&child_recv, NULL, receiveFromServer, &sockfd);
+    pthread_detach(child_recv);
+    
     while(1) {
-
-        // Create a thread for receiving messages
-        pthread_t child_recv;
-        pthread_create(&child_recv, NULL, receiveFromServer, &sockfd);
-        pthread_detach(child_recv);
 
         char command = '0';
         char line[5000];
