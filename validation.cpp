@@ -36,31 +36,34 @@ int handle_command(char *line, char command, char user[10]) {
         return 0;
     }
     else if (command == '4') {
-      std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
-      
-      struct termios t;
-      tcgetattr(fileno(stdin), &t);
-      t.c_lflag &= ~ECHO;
-      tcsetattr(fileno(stdin), 0, &t);
+        std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
 
-      char password[4900];
-      std::cin >> password;
+        struct termios t;
+        tcgetattr(fileno(stdin), &t);
+        t.c_lflag &= ~ECHO;
+        tcsetattr(fileno(stdin), 0, &t);
 
-      t.c_lflag |= ECHO;
-      tcsetattr(fileno(stdin), 0, &t);
-      
-      memcpy(&line[11], password, 4900);
+        char password[4900];
+        std::cin >> password;
 
-      return 4;
+        t.c_lflag |= ECHO;
+        tcsetattr(fileno(stdin), 0, &t);
+
+        memcpy(&line[11], password, 4900);
     }
     else if (command == '5') {
- 
-            std::cout << "User to kick: ";
-            std::cin >> otherUser;
-            if(strcmp(user, otherUser) == 0) {
-                return 9;
-            }
-            memcpy(&line[11], otherUser, 10);
+        std::cout << "User to kick: ";
+        std::cin >> otherUser;
+        if(strcmp(user, otherUser) == 0) {
+            return 9;
+        }
+        memcpy(&line[11], otherUser, 10);
+    }
+    else if (command == '6') {
+        char newUsername[10];
+        std::cout << "Enter a new username: ";
+        std::cin >> newUsername;
+        memcpy(&line[11], newUsername, 10);
     }
     else {
         std::cout << "Invalid command" << std::endl;
@@ -81,37 +84,3 @@ bool valid_username(std::string username) {
 
     return false;
 }
-
-
-// must have 1 letter, 1 num, one special character
-bool valid_password(std::string password) {
-
-    if (password.length() < 5 || password.length() > 16){ return false; }
-
-    std::regex valid_password("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{5,16}");
-
-    if(std::regex_match(password, valid_password)){ return true; }
-
-    return false;
-}
-
-/*
-bool become_admin() {
-
-    std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
-
-    std::string password;
-    std::cin >> password;
-    bool valid = false;
-    if (valid_password(password)){
-        is_admin = true;
-        // do other stuff probably
-        return true;
-    }
-    else{
-        std::cout << "Invalid password format" << std::endl; // probably want to do this in a while loop instead
-        return false;
-    }
-
-}
-*/

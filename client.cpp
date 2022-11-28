@@ -15,6 +15,7 @@
 
 using namespace std;
 
+char user[10];
 // Use thread to receive from server
 void* receiveFromServer(void* arg) {
 
@@ -22,14 +23,19 @@ void* receiveFromServer(void* arg) {
   
     ssize_t len_recv = 0;
     char content[5000];
-
+    memset(content, 0, 5000);
     len_recv = recv(sock, content, 5000, 0); 
     // First part of the message is who it is from
     char fromUser[10];
     memcpy(&fromUser, content, 10);
     char msg[4990];
     memcpy(&msg, content+10, 4990);
-    
+
+    if(content[0] == '1') {
+        memcpy(&fromUser, content+1, 10);
+        memcpy(&user, content+11, 10);
+        memcpy(&msg, content+21, 50);
+    }
     cout << endl << "<" << string(fromUser) <<"> " << msg << endl;
 
     if(strcmp(msg,"You have been kicked from the server.") == 0){
@@ -45,6 +51,7 @@ void printCommands() {
     cout << "3) List of clients on the server" << endl;
     cout << "4) Become an admin" << endl;
     cout << "5) Kick a user from the server (for admins only)" << endl;
+    cout << "6) Change username" << endl;
     cout << "q) Disconnect" << endl;
     cout << "========================================" << endl << endl;
 }
@@ -79,10 +86,9 @@ int main(int argc, char **argv) {
     if(sockfd == -1)
         return 1;
 
-    char user[10];
     cout << "Enter a username: ";
     cin >> user;
-    
+
     send(sockfd, user, 10, 0);
     
     printCommands();
@@ -108,15 +114,6 @@ int main(int argc, char **argv) {
         }
 
         send(sockfd, line, 5000, 0);
-	if(validCommand == 4){
-	  char response[5000];
-	  recv(sockfd, response, 5000, 0);
-	  if((strcmp(response, "GRANTED")) == 0){
-	    cout << "Access Granted" << endl;
-	  }else{
-	    cout << "Access Denied" << endl;
-	  }
-	}
     }
     close(sockfd);
 

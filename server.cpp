@@ -108,50 +108,97 @@ int main(int argc, char **argv) {
                 else if(command == 3) {
                     cout << "Sending list of clients to " << string(user) << endl;
                     // Put the sender in the msg
-                    memcpy(&msg, "SERVER", 6);
+                    memcpy(&msg, "SERVER", 10);
                     string clientList = "";
                     for(const auto &client : clients) {
                         clientList += client.first + " ";
                     }
                     memcpy(&msg[10], "Clients on the server: ", 23);
                     memcpy(&msg[33], clientList.c_str(), clientList.size());
-                    send(i, msg, 5000, 0);
+                    send(i, msg, 33+clientList.size(), 0);
 
-                }else if(command == 4){
-		  memcpy(&msg, line+11, 4900);
-		  char response[5000];
-		  if((strcmp(msg, PASSWORD)) == 0){
-		    memcpy(&response, "GRANTED", 8);
-		    admins.push_back(string(user));
-		    cout << user << " is now an admin" << endl;
-		  }else{
-		    memcpy(&response, "DENIED", 7);
-		  }
-		  send(i, response, 5000, 0);
-		}
+                }
+                else if(command == 4){
+                    memcpy(&msg, line+11, 4900);
+                    char response[5000];
+                    memcpy(&response, line+1, 10);
+                    if((strcmp(msg, PASSWORD)) == 0){
+                        memcpy(&response[10], "GRANTED admin permissions", 30);
+                        admins.push_back(string(user));
+                        cout << user << " is now an admin" << endl;
+                    }
+                    else
+                        memcpy(&response[10], "DENIED", 7);
+
+                    send(i, response, 5000, 0);
+                }
+                // Change username
+                else if(command == 6) {
+                    char newUsername[10];
+                    string oldName = string(user);
+                    int cSocket = clients[oldName];
+                    memcpy(&newUsername, line+11, 10);
+                    memcpy(&msg, "SERVER", 10);
+                    string nameMsg = "Username successfully changed.";
+                    bool success = true;
+                    // check if name is SERVER or is taken
+                    for(const auto &cName : clients) {
+                        if(strcmp(cName.first.c_str(), newUsername) == 0 
+                         || strcmp(newUsername, "SERVER") == 0) {
+                            nameMsg = "That username is taken.";
+                            memcpy(&msg[10], nameMsg.c_str(), 50);
+                            success = false;
+                        }
+                    }
+
+                    if(success) {
+                        cout << oldName << " changed their username to: " << string(newUsername) << endl;
+                        memcpy(&msg, "1", 1);
+                        memcpy(&msg[1], "SERVER", 10);
+                        memcpy(&msg[11], newUsername, 10);
+                        memcpy(&msg[21], nameMsg.c_str(), 50);
+                        clients.insert(make_pair(string(newUsername), cSocket));
+                        clients.erase(oldName);
+                    }
+
+                    send(i, msg, 5000, 0);
+                }
                 // Close client's connection
                 else if(command == 5 || command == 9) {
                     string rmUser = string(user);
                     // Kick user
                     if(command == 5) {
-		      // Checks if user is an admin
-		      bool isAdmin = false;
-		      for(const auto &Name : admins) {
-                        if(strcmp(Name.c_str(), user) == 0){
-			  isAdmin = true;
-			   char kickUser[10];
-			   memcpy(&kickUser, line+11, 10);
-			   rmUser = string(kickUser);
-			   cout << "Kicked " << rmUser << " from server" << endl;
-			   memcpy(&user, "SERVER", 6);
-			   char kickMsg[] = "You have been kicked from the server.";
-			   memcpy(&msg, user, 10);
-			   memcpy(&msg[10], kickMsg, 50);
-			   send(clients[rmUser], msg, 100, 0);
-			}
-		      }
-		      if(!isAdmin) continue;
+                        bool isAdmin = false;
+                        bool userExists = true;
+                        char kickUser[10];
+                        memcpy(&msg, "SERVER", 10);
+                        for(const auto &Name : admins) {
+                            if(strcmp(Name.c_str(), user) == 0){
+
+                                isAdmin = true;
+                                memcpy(&kickUser, line+11, 10);
+                                rmUser = string(kickUser);
+                                if(clients.count(rmUser) == 0) {
+                                    cout << "User does not exist" << endl;
+                                    memcpy(&msg[10], "User does not exist.", 50);
+                                    send(clients[string(user)], msg, 100, 0);
+                                    userExists = false;
+                                    break;
+                                }
+                                cout << "Kicked " << rmUser << " from server" << endl;
+                                memcpy(&msg[10], "You have been kicked from the server.", 50);
+                                send(clients[rmUser], msg, 100, 0);
+                            }
+                        }
+                        if(!isAdmin) {
+                            memcpy(&msg[10], "You do not have permission to kick users", 100);
+                            send(clients[rmUser], msg, 100, 0);
+                            continue;
+                        }
+                        if(!userExists)
+                            continue;
                     }
+
                     // Close client's socket
                     FD_CLR(clients[rmUser],&sockets);
                     close(clients[rmUser]);
