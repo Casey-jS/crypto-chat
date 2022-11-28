@@ -3,8 +3,8 @@
 #include <string.h>
 #include <cwctype> // for validating the username
 #include <regex>
+#include <termios.h>
 
-bool is_admin = true;
 int handle_command(char *line, char command, char user[10]) {
 
     memcpy(&line[0], &command, 1);
@@ -37,26 +37,30 @@ int handle_command(char *line, char command, char user[10]) {
     }
     else if (command == '4') {
       std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
+      
+      struct termios t;
+      tcgetattr(fileno(stdin), &t);
+      t.c_lflag &= ~ECHO;
+      tcsetattr(fileno(stdin), 0, &t);
+
       char password[4900];
       std::cin >> password;
+
+      t.c_lflag |= ECHO;
+      tcsetattr(fileno(stdin), 0, &t);
+      
       memcpy(&line[11], password, 4900);
 
       return 4;
     }
     else if (command == '5') {
-        if (!is_admin){
-            std::cout << "You do not have admin rights." << std::endl;
-            return 99;
-        }
-        // if the user IS an admin
-        else {
+ 
             std::cout << "User to kick: ";
             std::cin >> otherUser;
             if(strcmp(user, otherUser) == 0) {
                 return 9;
             }
             memcpy(&line[11], otherUser, 10);
-        }
     }
     else {
         std::cout << "Invalid command" << std::endl;
@@ -91,7 +95,7 @@ bool valid_password(std::string password) {
     return false;
 }
 
-
+/*
 bool become_admin() {
 
     std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
@@ -110,3 +114,4 @@ bool become_admin() {
     }
 
 }
+*/

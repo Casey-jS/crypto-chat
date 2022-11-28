@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <signal.h>
 #include "validation.h"
 
 using namespace std;
@@ -103,7 +104,6 @@ int main(int argc, char **argv) {
 	if(validCommand == 4){
 	  char response[5000];
 	  recv(sockfd, response, 5000, 0);
-	  cout << response << endl;
 	  if((strcmp(response, "GRANTED")) == 0){
 	    cout << "Access Granted" << endl;
 	  }else{
