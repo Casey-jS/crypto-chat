@@ -37,7 +37,7 @@ int handle_command(char *line, char command, char user[10]) {
     }
     // Become admin
     else if (command == '4') {
-        std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
+        std::cout << "Enter admin password: ";
 
         struct termios t;
         tcgetattr(fileno(stdin), &t);
