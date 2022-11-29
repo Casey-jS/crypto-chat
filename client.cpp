@@ -15,7 +15,6 @@
 
 using namespace std;
 
-char user[10];
 // Use thread to receive from server
 void* receiveFromServer(void* arg) {
   while(1){
@@ -31,14 +30,10 @@ void* receiveFromServer(void* arg) {
     char msg[4990];
     memcpy(&msg, content+10, 4990);
 
-    if(content[0] == '1') {
-        memcpy(&fromUser, content+1, 10);
-        memcpy(&user, content+11, 10);
-        memcpy(&msg, content+21, 50);
-    }
     cout << endl << "<" << string(fromUser) <<"> " << msg << endl;
 
-    if(strcmp(msg,"You have been kicked from the server.") == 0){
+    if(strcmp(fromUser, "SERVER") == 0 &&
+        strcmp(msg,"You have been kicked from the server.") == 0){
       kill(0, SIGINT);
     }
   }
@@ -52,7 +47,7 @@ void printCommands() {
     cout << "3) List of clients on the server" << endl;
     cout << "4) Become an admin" << endl;
     cout << "5) Kick a user from the server (for admins only)" << endl;
-    cout << "6) Change username" << endl;
+    cout << "6) Make another user an admin (for admins only)" << endl;
     cout << "q) Disconnect" << endl;
     cout << "========================================" << endl << endl;
 }
@@ -87,6 +82,7 @@ int main(int argc, char **argv) {
     if(sockfd == -1)
         return 1;
 
+    char user[10];
     cout << "Enter a username: ";
     cin >> user;
 

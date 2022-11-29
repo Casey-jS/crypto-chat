@@ -35,6 +35,7 @@ int handle_command(char *line, char command, char user[10]) {
     else if (command == '3') {
         return 0;
     }
+    // Become admin
     else if (command == '4') {
         std::cout << "Enter password: (5-16 characters containing one letter and one number)" << std::endl;
 
@@ -51,6 +52,7 @@ int handle_command(char *line, char command, char user[10]) {
 
         memcpy(&line[11], password, 4900);
     }
+    // Kick user
     else if (command == '5') {
         std::cout << "User to kick: ";
         std::cin >> otherUser;
@@ -59,9 +61,10 @@ int handle_command(char *line, char command, char user[10]) {
         }
         memcpy(&line[11], otherUser, 10);
     }
+    // Give another client admin
     else if (command == '6') {
         char newUsername[10];
-        std::cout << "Enter a new username: ";
+        std::cout << "Enter a user to give admin permissions: ";
         std::cin >> newUsername;
         memcpy(&line[11], newUsername, 10);
     }

@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <map>
 #include <list>
+#include <algorithm>
 
 using namespace std;
 
@@ -33,9 +34,7 @@ int main(int argc, char **argv) {
     
     // client's username and socket
     map<string, int> clients;
-
     list<string> admins;
-
 
     while(1) {
         fd_set tmpset=sockets;
@@ -118,6 +117,7 @@ int main(int argc, char **argv) {
                     send(i, msg, 33+clientList.size(), 0);
 
                 }
+                // Become admin
                 else if(command == 4){
                     memcpy(&msg, line+11, 4900);
                     char response[5000];
@@ -132,71 +132,59 @@ int main(int argc, char **argv) {
 
                     send(i, response, 5000, 0);
                 }
-                // Change username
+                // Make another user admin
                 else if(command == 6) {
-                    char newUsername[10];
-                    string oldName = string(user);
-                    int cSocket = clients[oldName];
-                    memcpy(&newUsername, line+11, 10);
+                    char otherUser[10];
                     memcpy(&msg, "SERVER", 10);
-                    string nameMsg = "Username successfully changed.";
-                    bool success = true;
-                    // check if name is SERVER or is taken
-                    for(const auto &cName : clients) {
-                        if(strcmp(cName.first.c_str(), newUsername) == 0 
-                         || strcmp(newUsername, "SERVER") == 0) {
-                            nameMsg = "That username is taken.";
-                            memcpy(&msg[10], nameMsg.c_str(), 50);
-                            success = false;
-                        }
+                    memcpy(&otherUser, line+11, 10);
+                    // if client using the command is not an admin
+                    if(!(find(admins.begin(), admins.end(), string(user)) != admins.end())) {
+                        memcpy(&msg[10], "You need to be an admin to use this command.", 100);
+                        send(i, msg, 110, 0);
+                        continue;
                     }
-
-                    if(success) {
-                        cout << oldName << " changed their username to: " << string(newUsername) << endl;
-                        memcpy(&msg, "1", 1);
-                        memcpy(&msg[1], "SERVER", 10);
-                        memcpy(&msg[11], newUsername, 10);
-                        memcpy(&msg[21], nameMsg.c_str(), 50);
-                        clients.insert(make_pair(string(newUsername), cSocket));
-                        clients.erase(oldName);
+                    // If other client is on the server and not already an admin
+                    if(clients.count(string(otherUser)) > 0 
+                        && !(find(admins.begin(), admins.end(), string(otherUser)) != admins.end())) {
+                        admins.push_back(string(otherUser));
+                        memcpy(&msg[10], "You have been given admin permissions.", 100);
+                        send(clients[string(otherUser)], msg, 110, 0);
                     }
-
-                    send(i, msg, 5000, 0);
+                    else {
+                        memcpy(&msg[10], "That user is not on the server or is already an admin.", 100);
+                        send(i, msg, 110, 0);
+                    }
                 }
                 // Close client's connection
                 else if(command == 5 || command == 9) {
                     string rmUser = string(user);
                     // Kick user
                     if(command == 5) {
-                        bool isAdmin = false;
-                        bool userExists = true;
+                        //bool isAdmin = false;
+                        //bool userExists = true;
                         char kickUser[10];
                         memcpy(&msg, "SERVER", 10);
-                        for(const auto &Name : admins) {
-                            if(strcmp(Name.c_str(), user) == 0){
-
-                                isAdmin = true;
-                                memcpy(&kickUser, line+11, 10);
-                                rmUser = string(kickUser);
-                                if(clients.count(rmUser) == 0) {
-                                    cout << "User does not exist" << endl;
-                                    memcpy(&msg[10], "User does not exist.", 50);
-                                    send(clients[string(user)], msg, 100, 0);
-                                    userExists = false;
-                                    break;
-                                }
-                                cout << "Kicked " << rmUser << " from server" << endl;
-                                memcpy(&msg[10], "You have been kicked from the server.", 50);
-                                send(clients[rmUser], msg, 100, 0);
+                        // if client is an admin
+                        if(find(admins.begin(), admins.end(), rmUser) != admins.end()) {
+                            memcpy(&kickUser, line+11, 10);
+                            rmUser = string(kickUser);
+                            // if client being kicked does not exist
+                            if(clients.count(rmUser) == 0) {
+                                cout << "User does not exist" << endl;
+                                memcpy(&msg[10], "User does not exist.", 50);
+                                send(clients[string(user)], msg, 60, 0);
+                                continue;
                             }
+                            cout << "Kicked " << rmUser << " from server" << endl;
+                            memcpy(&msg[10], "You have been kicked from the server.", 110);
+                            send(clients[rmUser], msg, 110, 0);
                         }
-                        if(!isAdmin) {
+                        // Client is not an admin
+                        else {
                             memcpy(&msg[10], "You do not have permission to kick users", 100);
-                            send(clients[rmUser], msg, 100, 0);
+                            send(clients[rmUser], msg, 110, 0);
                             continue;
                         }
-                        if(!userExists)
-                            continue;
                     }
 
                     // Close client's socket
