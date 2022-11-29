@@ -160,8 +160,6 @@ int main(int argc, char **argv) {
                     string rmUser = string(user);
                     // Kick user
                     if(command == 5) {
-                        //bool isAdmin = false;
-                        //bool userExists = true;
                         char kickUser[10];
                         memcpy(&msg, "SERVER", 10);
                         // if client is an admin
