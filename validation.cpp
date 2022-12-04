@@ -5,7 +5,7 @@
 #include <regex>
 #include <termios.h>
 
-int handle_command(char *line, char command, char user[10]) {
+int handle_command(unsigned char (&line)[5000], char command, unsigned char user[10]) {
 
     memcpy(&line[0], &command, 1);
     memcpy(&line[1], user, 10);
@@ -15,7 +15,7 @@ int handle_command(char *line, char command, char user[10]) {
         return 9;
     }
     std::string msg;
-    char otherUser[10];
+    unsigned char otherUser[10];
     // Broadcast message
     if(command == '1') {
         std::cout << "Enter a message: ";
@@ -56,9 +56,6 @@ int handle_command(char *line, char command, char user[10]) {
     else if (command == '5') {
         std::cout << "User to kick: ";
         std::cin >> otherUser;
-        if(strcmp(user, otherUser) == 0) {
-            return 9;
-        }
         memcpy(&line[11], otherUser, 10);
     }
     // Give another client admin
