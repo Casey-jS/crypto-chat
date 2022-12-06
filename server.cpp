@@ -24,6 +24,17 @@ using namespace std;
 
 #define PASSWORD "password1"
 
+void sendEncryptedMsg(int sockfd, unsigned char *msg, 
+		unsigned char key[32], unsigned char iv[16]) {
+	unsigned char line[5000];
+	unsigned char ciphertext[5000];
+	int ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
+	memcpy(&line, iv, 16);
+	memcpy(&line[16], ciphertext, ciphertext_len);
+	send(sockfd, line, 16+ciphertext_len, 0);
+}
+
+
 int main(int argc, char **argv) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     
@@ -80,11 +91,29 @@ int main(int argc, char **argv) {
             
 			// Decrypt client's key
             int decryptedkey_len = rsa_decrypt(encrypted_key, encryptedkey_len, privkey, decrypted_key);
+			cout << "decrypyted client key" << endl;
 			// Decrypt username
             decryptedtext_len = decrypt(ciphertext, ciphertext_len, decrypted_key, iv, decryptedtext);
             decryptedtext[decryptedtext_len] = '\0';
+			cout << "decrypyted client username" << endl;
 
             string clientName = string((char *)decryptedtext);
+
+			unsigned char response[4900];
+            // if the username exists in the map already
+            if (clients.count(clientName) != 0 || clientName == "SERVER" || clientName == "server"){
+				cout << "Not a unique username" << endl;
+                memcpy(&response, "bad", 4900);
+				sendEncryptedMsg(clientsocket, response, decrypted_key, iv);
+                continue;
+            }
+            else{
+				cout << "unique username" << endl;
+				memcpy(&response, "good", 4900);
+				sendEncryptedMsg(clientsocket, response, decrypted_key, iv);
+            }
+
+
 			clientKeys.insert(make_pair(clientsocket, string((char *)decrypted_key)));
             clients.insert(make_pair(clientName, clientsocket));
             cout << clientName << " connected to the server on socket " << clientsocket << endl;
@@ -104,10 +133,7 @@ int main(int argc, char **argv) {
 
 			memcpy(&line, "SERVER", 10);
 			memcpy(&line[10], "Welcome to the server", 1000);
-			ciphertext_len = encrypt(line, 1010, decrypted_key, iv, ciphertext);
-			memcpy(&line, iv, 16);
-			memcpy(&line[16], ciphertext, ciphertext_len);
-			send(clientsocket, line, 16+ciphertext_len, 0);
+			sendEncryptedMsg(clientsocket, line, decrypted_key, iv);
         }
 
         for(int i = 0; i < FD_SETSIZE; ++i) {
@@ -142,11 +168,7 @@ int main(int argc, char **argv) {
                     for(const auto &client : clients) {
 						// convert key from string back to unsigned char array
 						memcpy(&key, clientKeys[client.second].c_str(), 32);
-
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-                        send(client.second, line, 16+ciphertext_len, 0);
+						sendEncryptedMsg(client.second, msg, key, iv);
                     }
 
                 }
@@ -157,10 +179,7 @@ int main(int argc, char **argv) {
                     if(clients.count(string(dmUser)) == 0) {
 						memcpy(&msg, "SERVER", 10);
 						memcpy(&msg[10], "User does not exist", 4890);
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-                        send(clients[string(user)], line, 16+ciphertext_len, 0);
+						sendEncryptedMsg(clients[string(user)], msg, key, iv);
                     }
                     else {
 						// Put the sender in the msg
@@ -169,12 +188,8 @@ int main(int argc, char **argv) {
                         cout << "<" << user << " -> " << dmUser << "> " << msg+10 << endl;
 						// convert key from string back to unsigned char array
 						memcpy(&key, clientKeys[clients[string(dmUser)]].c_str(), 32);
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-                        send(clients[string(dmUser)], line, 16+ciphertext_len, 0);
+						sendEncryptedMsg(clients[string(dmUser)], msg, key, iv);
                     }
-
                 }
                 // get list of clients
                 else if(command == 3) {
@@ -187,10 +202,7 @@ int main(int argc, char **argv) {
                     }
                     memcpy(&msg[10], "Clients on the server: ", 23);
                     memcpy(&msg[33], clientList.c_str(), 4867);
-					ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-					memcpy(&line, iv, 16);
-					memcpy(&line[16], ciphertext, ciphertext_len);
-                    send(i, line, 16+ciphertext_len, 0);
+					sendEncryptedMsg(i, msg, key, iv);
                 }
                 // Become admin
                 else if(command == 4){
@@ -204,11 +216,7 @@ int main(int argc, char **argv) {
                     else
                         memcpy(&msg[10], "DENIED", 4900);
 
-					ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-					memcpy(&line, iv, 16);
-					memcpy(&line[16], ciphertext, ciphertext_len);
-
-                    send(i, line, 16+ciphertext_len, 0);
+					sendEncryptedMsg(i, msg, key, iv);
                 }
                 // Make another user admin
                 else if(command == 6) {
@@ -218,11 +226,8 @@ int main(int argc, char **argv) {
                     // if client using the command is not an admin
                     if(!(find(admins.begin(), admins.end(), string(user)) != admins.end())) {
                         memcpy(&msg[10], "You need to be an admin to use this command.", 100);
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-						send(i, line, 16+ciphertext_len, 0);
-                        continue;
+						sendEncryptedMsg(i, msg, key, iv);
+						continue;
                     }
                     // If other client is on the server and not already an admin
                     if(clients.count(string(otherUser)) > 0 
@@ -232,17 +237,11 @@ int main(int argc, char **argv) {
 
 						// convert key from string back to unsigned char array
 						memcpy(&key, clientKeys[clients[string(otherUser)]].c_str(), 32);
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-						send(clients[string(otherUser)], line, 16+ciphertext_len, 0);
+						sendEncryptedMsg(clients[string(otherUser)], msg, key, iv);
                     }
                     else {
                         memcpy(&msg[10], "That user is not on the server or is already an admin.", 100);
-						ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-						memcpy(&line, iv, 16);
-						memcpy(&line[16], ciphertext, ciphertext_len);
-						send(i, line, 16+ciphertext_len, 0);
+						sendEncryptedMsg(i, msg, key, iv);
                     }
                 }
                 // Close client's connection
@@ -260,28 +259,19 @@ int main(int argc, char **argv) {
                             if(clients.count(rmUser) == 0) {
                                 cout << "User does not exist" << endl;
                                 memcpy(&msg[10], "User does not exist.", 50);
-								ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-								memcpy(&line, iv, 16);
-								memcpy(&line[16], ciphertext, ciphertext_len);
-								send(i, line, 16+ciphertext_len, 0);
+								sendEncryptedMsg(i, msg, key, iv);
                                 continue;
                             }
 							cout << user << " kicked " << rmUser << " from the server." << endl;
                             memcpy(&msg[10], "You have been kicked from the server.", 110);
 							// convert key from string back to unsigned char array
 							memcpy(&key, clientKeys[clients[rmUser]].c_str(), 32);
-							ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-							memcpy(&line, iv, 16);
-							memcpy(&line[16], ciphertext, ciphertext_len);
-							send(clients[rmUser], line, 16+ciphertext_len, 0);
+							sendEncryptedMsg(clients[rmUser], msg, key, iv);
                         }
                         // Client is not an admin
                         else {
                             memcpy(&msg[10], "You do not have permission to kick users", 100);
-							ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
-							memcpy(&line, iv, 16);
-							memcpy(&line[16], ciphertext, ciphertext_len);
-							send(clients[user], line, 16+ciphertext_len, 0);
+							sendEncryptedMsg(clients[rmUser], msg, key, iv);
                             continue;
                         }
                     }

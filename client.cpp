@@ -125,20 +125,45 @@ int main(int argc, char **argv) {
     pubkey = PEM_read_PUBKEY(pubf,NULL,NULL,NULL);
 
     unsigned char user[10];
-    cout << "Enter a username: ";
-    cin >> user;
 
-    // Encrypt client key using public key
-    unsigned char encrypted_key[256];
-    int encryptedkey_len = rsa_encrypt(key, 32, pubkey, encrypted_key);
-    // Send encrypted key 
-    send(sockfd, encrypted_key, encryptedkey_len, 0);
+	// Encrypt client key using public key
+	unsigned char encrypted_key[256];
+	int encryptedkey_len = rsa_encrypt(key, 32, pubkey, encrypted_key);
 
-	// Send iv and encrypted username
-	ciphertext_len = encrypt(user, 10, key, iv, ciphertext);
-	memcpy(&line, iv, 16);
-	memcpy(&line[16], ciphertext, ciphertext_len);
-    send(sockfd, line, 16+ciphertext_len, 0);
+	while(1){
+
+		cout << "Enter a username: ";
+		cin >> user;
+
+		// Send encrypted key 
+		send(sockfd, encrypted_key, encryptedkey_len, 0);
+		cout << "sent encrypted key" << endl;
+
+		// Send iv and encrypted username
+		ciphertext_len = encrypt(user, 10, key, iv, ciphertext);
+		memcpy(&line, iv, 16);
+		memcpy(&line[16], ciphertext, ciphertext_len);
+		send(sockfd, line, 16+ciphertext_len, 0);
+		cout << "sent username and iv" << endl;
+
+        unsigned char response[4900];
+        int len = recv(sockfd, response, 5000, 0);
+
+		if(len > 0) {
+		cout << "recv resp, len recv = " << len << endl;
+        int decryptedtext_len = decrypt(response, len, key, iv, decryptedtext);
+        decryptedtext[decryptedtext_len] = '\0';
+		cout << "decrypted resp:" << decryptedtext << endl;
+
+        if (strcmp((char *)decryptedtext+16, "good") == 0)
+            break;
+		}
+    }
+
+
+
+
+
 	// clear line
     memset(line, 0, 5000);
     
