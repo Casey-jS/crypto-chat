@@ -28,7 +28,8 @@ void sendEncryptedMsg(int sockfd, unsigned char *msg,
 		unsigned char key[32], unsigned char iv[16]) {
 	unsigned char line[5000];
 	unsigned char ciphertext[5000];
-	int ciphertext_len = encrypt(msg, 4900, key, iv, ciphertext);
+	int ciphertext_len = encrypt(msg, 4800, key, iv, ciphertext);
+	//	cout << ciphertext_len << endl;
 	memcpy(&line, iv, 16);
 	memcpy(&line[16], ciphertext, ciphertext_len);
 	send(sockfd, line, 16+ciphertext_len, 0);
@@ -79,9 +80,7 @@ int main(int argc, char **argv) {
             socklen_t len = sizeof(struct sockaddr_in);
             int clientsocket = accept(sockfd, 
                     (struct sockaddr*) &clientaddr, &len);
-            FD_SET(clientsocket,&sockets);
-
-
+	   
             // Receive encrypted key from client
             int encryptedkey_len = recv(clientsocket, encrypted_key, 256, 0);
             // Receive iv and encrypted username from client
@@ -104,14 +103,19 @@ int main(int argc, char **argv) {
             if (clients.count(clientName) != 0 || clientName == "SERVER" || clientName == "server"){
 				cout << "Not a unique username" << endl;
                 memcpy(&response, "bad", 4900);
-				sendEncryptedMsg(clientsocket, response, decrypted_key, iv);
+		sendEncryptedMsg(clientsocket, response, decrypted_key, iv);
+		close(clientsocket);
                 continue;
             }
             else{
+
+	      
 				cout << "unique username" << endl;
 				memcpy(&response, "good", 4900);
 				sendEncryptedMsg(clientsocket, response, decrypted_key, iv);
-            }
+				
+				FD_SET(clientsocket,&sockets);
+	    }
 
 
 			clientKeys.insert(make_pair(clientsocket, string((char *)decrypted_key)));

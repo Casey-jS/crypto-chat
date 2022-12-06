@@ -102,12 +102,31 @@ int connectToServer() {
 
 
 int main(int argc, char **argv) {
-    int sockfd = connectToServer();
-    if(sockfd == -1)
-        return 1;
+  
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    int port_num;
+    char ip_addr[20];
+    cout << "Enter an IP address: ";
+    fgets(ip_addr,20,stdin);
+    cout << "Enter a port number: ";
+    cin >> port_num;
 
-	unsigned char line[5000];
-	unsigned char key[32];
+    struct sockaddr_in serveraddr;
+    serveraddr.sin_family = AF_INET;
+    serveraddr.sin_port = htons(port_num);
+    serveraddr.sin_addr.s_addr = inet_addr(ip_addr);
+
+    int n = connect(sockfd, (struct sockaddr*) &serveraddr, sizeof(serveraddr));
+    if(n<0) {
+        printf("There was a problem connecting\n");
+        close(sockfd);
+        return -1;
+    }
+
+
+       unsigned char line[5000];
+       unsigned char key[32];
     unsigned char iv[16];
     unsigned char ciphertext[5000];
     unsigned char decryptedtext[5000];
@@ -137,31 +156,35 @@ int main(int argc, char **argv) {
 
 		// Send encrypted key 
 		send(sockfd, encrypted_key, encryptedkey_len, 0);
-		cout << "sent encrypted key" << endl;
 
 		// Send iv and encrypted username
 		ciphertext_len = encrypt(user, 10, key, iv, ciphertext);
 		memcpy(&line, iv, 16);
 		memcpy(&line[16], ciphertext, ciphertext_len);
 		send(sockfd, line, 16+ciphertext_len, 0);
-		cout << "sent username and iv" << endl;
 
         unsigned char response[4900];
         int len = recv(sockfd, response, 5000, 0);
 
-		if(len > 0) {
-		cout << "recv resp, len recv = " << len << endl;
-        int decryptedtext_len = decrypt(response, len, key, iv, decryptedtext);
-        decryptedtext[decryptedtext_len] = '\0';
-		cout << "decrypted resp:" << decryptedtext << endl;
+	 if(len > 0) {
 
-        if (strcmp((char *)decryptedtext+16, "good") == 0)
-            break;
+		int decryptedtext_len = decrypt(response, len, key, iv, decryptedtext);
+		decryptedtext[decryptedtext_len] = '\0';
+
+
+		if (strcmp((char *)decryptedtext+16, "good") == 0){
+		  break;
 		}
+		else{
+		  close(sockfd);
+		  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+		  int s = connect(sockfd, (struct sockaddr*) &serveraddr, sizeof(serveraddr));
+		}
+	  }
     }
 
 
-
+       
 
 
 	// clear line
